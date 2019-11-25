@@ -1,6 +1,7 @@
 import os
 from math import *
 from pathlib import Path
+from filter import Filter
 
 
 class ListFilesBox:
@@ -69,8 +70,17 @@ class ListFilesBox:
                                     self.normal_text)
                 if self.current_number_of_elements >= self.row_num:
                     break
-
         self.box.refresh()
+
+    def filter(self):
+        Filter(self).handle_filtering()
+
+    def set_selected_files(self, selected_files):
+        self.selected_files = selected_files
+        self.position = 1
+        self.page = 1
+        self.row_num = len(self.selected_files)
+        self.pages = int(ceil(self.row_num / self.max_row))
 
 
 class State:

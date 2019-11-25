@@ -1,11 +1,8 @@
 # A lot of stuff to refactor. Just starting learning curses so.... a lot of mess
 import curses, os
 from math import *
-from pathlib import Path
-from filter import Filter
 from list_files_box import ListFilesBox
 
-systemPathSeparator = os.path.sep
 screen = curses.initscr()
 curses.noecho()
 curses.cbreak()
@@ -18,7 +15,8 @@ cursor_style = curses.color_pair(1)
 directory_style = curses.color_pair(2)
 normalText = curses.A_NORMAL
 curses.curs_set(0)
-box = curses.newwin(10 + 2, 64, 0, 0)  # TODO this 10 have to be calculated
+height, width = screen.getmaxyx()
+box = curses.newwin(height, width, 0, 0)  # TODO this 10 have to be calculated
 box.keypad(1)
 box.box()
 
@@ -71,14 +69,7 @@ while True:
     if str(x) == "263":  # BACKSPACE - TODO constant here
         list_files_box.go_to_parent()
     if str(chr(x)) == "/":  # SLASH - search
-        filter = Filter(curses, box, list_files_box.selected_files, list_files_box.print)
-        files = filter.handle_filtering()
-        position = 1
-        page = 1
-        row_num = len(files)
-        pages = int(ceil(row_num / list_files_box.max_row))
-        # box.addstr(max_row + 1, 2, "█", directory_style)
-        pass
+        list_files_box.filter()
     if x == ord("\n") and list_files_box.row_num != 0:
         list_files_box.go_to_selected_directory()
 
