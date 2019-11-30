@@ -1,4 +1,4 @@
-# Fast File Manager v0.1
+# Fast File Manager v0.3
 Simple and Fast file manager written in Python3 (Tested only on Linux)
 
 ![](v0_3.gif)
