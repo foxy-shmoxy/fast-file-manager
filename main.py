@@ -3,7 +3,22 @@ import curses, os
 from math import *
 from list_files_box import ListFilesBox
 
+
+def create_box(curses, y, x):
+    box = curses.newwin(height, width, y, x)
+    box.keypad(1)
+    box.box()
+    return box
+
+
+def log(msg):
+    log_file.write("%s\n" % msg)
+    log_file.flush()
+
+
+log_file = open("logs.txt", "w")
 screen = curses.initscr()
+minimal_panel_width = 15
 curses.noecho()
 curses.cbreak()
 curses.start_color()
@@ -16,62 +31,81 @@ directory_style = curses.color_pair(2)
 normalText = curses.A_NORMAL
 curses.curs_set(0)
 height, width = screen.getmaxyx()
-box = curses.newwin(height, width, 0, 0)  # TODO this 10 have to be calculated
-box.keypad(1)
-box.box()
+box = create_box(curses, 0, 0)
 
-list_files_box = ListFilesBox(box, cursor_style, directory_style, normalText)
+focused_element = ListFilesBox(box, cursor_style, directory_style, normalText, log_file=log_file)
+layout = [[focused_element]]
+current_col_focused = 0
+current_row = layout[current_col_focused]
 
 screen.refresh()
 
 while True:
-    list_files_box.print()
+    height, width = screen.getmaxyx()
+    focused_element.print()
     x = screen.getch()
     if x == 27:
         break
     if x == curses.KEY_DOWN:
-        if list_files_box.page == 1:
-            # screen.addstr(17, 1, ("position %s i = %s" % (position, i))[:50], cursor_style)
-            if list_files_box.position < list_files_box.current_number_of_elements:
-                list_files_box.position = list_files_box.position + 1
-            else:
-                if list_files_box.pages > 1:
-                    list_files_box.page = list_files_box.page + 1
-                    list_files_box.position = 1 + (list_files_box.max_row * (list_files_box.page - 1))
-        elif list_files_box.page == list_files_box.pages:
-            if list_files_box.position < list_files_box.row_num:
-                list_files_box.position = list_files_box.position + 1
-        else:
-            if list_files_box.position < list_files_box.max_row + (list_files_box.max_row * (list_files_box.page - 1)):
-                list_files_box.position = list_files_box.position + 1
-            else:
-                list_files_box.page = list_files_box.page + 1
-                list_files_box.position = 1 + (list_files_box.max_row * (list_files_box.page - 1))
+        focused_element.key_down()
     if x == curses.KEY_UP:
-        if list_files_box.page == 1:
-            if list_files_box.position > 1:
-                list_files_box.position = list_files_box.position - 1
-        else:
-            if list_files_box.position > (1 + (list_files_box.max_row * (list_files_box.page - 1))):
-                list_files_box.position = list_files_box.position - 1
-            else:
-                list_files_box.page = list_files_box.page - 1
-                list_files_box.position = list_files_box.max_row + (list_files_box.max_row * (list_files_box.page - 1))
+        focused_element.key_up()
     if x == curses.KEY_LEFT:
-        if list_files_box.page > 1:
-            list_files_box.page = list_files_box.page - 1
-            list_files_box.position = 1 + (list_files_box.max_row * (list_files_box.page - 1))
-
+        if focused_element.page_number > 1:
+            focused_element.page_number = focused_element.page_number - 1
+            focused_element.position = 1 + (focused_element.max_row * (focused_element.page_number - 1))
     if x == curses.KEY_RIGHT:
-        if list_files_box.page < list_files_box.pages:
-            list_files_box.page = list_files_box.page + 1
-            list_files_box.position = (1 + (list_files_box.max_row * (list_files_box.page - 1)))
-    if str(x) == "263":  # BACKSPACE - TODO constant here
-        list_files_box.go_to_parent()
+        if focused_element.page_number < focused_element.pages:
+            focused_element.page_number = focused_element.page_number + 1
+            focused_element.position = (1 + (focused_element.max_row * (focused_element.page_number - 1)))
+    if str(x) == "263":  # BACKSPACE -
+        focused_element.go_to_parent()
     if str(chr(x)) == "/":  # SLASH - search
-        list_files_box.filter()
-    if x == ord("\n") and list_files_box.row_num != 0:
-        list_files_box.go_to_selected_directory()
+        focused_element.filter()
+    if str(chr(x)) == "h":
+        if current_col_focused != 0:
+            current_col_focused = current_col_focused - 1
+            focused_element = current_row[current_col_focused]
+    if str(chr(x)) == "l":
+        if current_col_focused != len(current_row) - 1:
+            current_col_focused = current_col_focused + 1
+            focused_element = current_row[current_col_focused]
+    if str(chr(x)) == "v":  # TODO calculate limit of vertical panels
+        size_of_one_window = int(width / len(current_row) + 1)
+        if size_of_one_window < minimal_panel_width:
+            continue
+        height, width = screen.getmaxyx()
+        log("width %s \n" % width)
+        new_box = create_box(curses, 0, 0)
+        new_file_box = ListFilesBox(new_box, cursor_style, directory_style, normalText, log_file=log_file)
+        focused_element = new_file_box
+        current_row.append(new_file_box)
+        size_of_one_window = int(width / len(current_row))
+        windows_size_left_over = width % len(current_row)
+        last_panel_position = 0
+        current_col_focused = current_col_focused + 1
+
+        for i, file_list_window in enumerate(current_row):
+            log("=========== i %s" % i)
+            log("left_over %s" % windows_size_left_over)
+            log("last %s " % last_panel_position)
+            temp_size = size_of_one_window
+            if i < windows_size_left_over:
+                log("true")
+                temp_size = temp_size + 1
+
+            log("temp_size %s" % temp_size)
+            file_list_window.resize(height, temp_size)
+            file_list_window.move(0, last_panel_position)
+            last_panel_position = last_panel_position + temp_size
+
+        for i, file_list_window in enumerate(current_row):
+            file_list_window.box.erase()
+            file_list_window.print()
+            file_list_window.box.refresh()
+
+    if x == ord("\n") and focused_element.row_num != 0:
+        focused_element.go_to_selected_directory()
 
 curses.endwin()
 exit()
