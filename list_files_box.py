@@ -27,6 +27,7 @@ class ListFilesBox:
         self.systemPathSeparator = os.path.sep
         self.current_number_of_elements = 0
         self.previous_states = []
+        self.focused = True
 
         self.load_from_directory(self.directory)
 
@@ -49,7 +50,7 @@ class ListFilesBox:
         else:
             previous_state = self.previous_states.pop()
             self.position = previous_state.position
-            self.page_number = previous_state.page
+            self.page_number = previous_state.page_number
 
     def go_to_selected_directory(self):
         selected_file = self.directory + self.systemPathSeparator + self.page[self.position]
@@ -73,10 +74,12 @@ class ListFilesBox:
         if start_element_index < 0:
             start_element_index = 0
         self.page = self.selected_files[start_element_index: start_element_index + self.max_row - 1]
-        self.log("page %s" % self.page)
-        self.box.erase()
-        self.box.border(0)
-        self.box.addstr(0, 2, self.directory)
+        # self.box.erase()
+        if self.focused:
+            self.box.border(0)
+        else:
+            self.box.border(':', ':', ' ', '.', ' ', ' ', ' ', ' ')
+        self.box.addstr(0, 1, self.directory[: self.max_cols - 2])
         for self.current_number_of_elements, element in enumerate(self.page):
             croped_element = element[: self.max_cols - 3]
             if self.current_number_of_elements == self.position:
@@ -149,4 +152,4 @@ class State:
 
     def __init__(self, list_files_box):
         self.position = list_files_box.position
-        self.page = list_files_box.page
+        self.page_number = list_files_box.page_number

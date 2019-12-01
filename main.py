@@ -66,10 +66,22 @@ while True:
         if current_col_focused != 0:
             current_col_focused = current_col_focused - 1
             focused_element = current_row[current_col_focused]
+            for i, file_list_window in enumerate(current_row):
+                if i == current_col_focused:
+                    file_list_window.focused = True
+                else:
+                    file_list_window.focused = False
+                file_list_window.print()
     if str(chr(x)) == "l":
         if current_col_focused != len(current_row) - 1:
             current_col_focused = current_col_focused + 1
             focused_element = current_row[current_col_focused]
+            for i, file_list_window in enumerate(current_row):
+                if i == current_col_focused:
+                    file_list_window.focused = True
+                else:
+                    file_list_window.focused = False
+                file_list_window.print()
     if str(chr(x)) == "v":  # TODO calculate limit of vertical panels
         size_of_one_window = int(width / len(current_row) + 1)
         if size_of_one_window < minimal_panel_width:
@@ -94,6 +106,11 @@ while True:
             last_panel_position = last_panel_position + temp_size
 
         for i, file_list_window in enumerate(current_row):
+            if i == current_col_focused:
+                file_list_window.focused = True
+            else:
+                file_list_window.focused = False
+            log("i %s focues %s" % (i, file_list_window.focused))
             file_list_window.box.erase()
             file_list_window.print()
             file_list_window.box.refresh()
