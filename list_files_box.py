@@ -1,4 +1,4 @@
-import os
+import subprocess, os, platform
 from math import *
 from pathlib import Path
 from filter import Filter
@@ -57,18 +57,28 @@ class ListFilesBox:
             self.directory = selected_file
             self.previous_states.append(State(self))
             self.load_from_directory(selected_file)
+        else:
+            if platform.system() == 'Darwin':  # macOS
+                subprocess.call(('open', selected_file))
+            elif platform.system() == 'Windows':  # Windows
+                os.startfile(selected_file)
+            else:  # linux variants
+                subprocess.call(('xdg-open', selected_file))
 
     def print(self):
         self.max_row, self.max_cols = self.box.getmaxyx()
         self.max_row = self.max_row - 1
         self.pages = int(ceil(self.row_num / self.max_row))
-        self.page = self.selected_files[0: self.max_row - 1]
+        start_element_index = self.page_number * self.max_row - 1
+        if start_element_index < 0:
+            start_element_index = 0
+        self.page = self.selected_files[start_element_index: start_element_index + self.max_row - 1]
+        self.log("page %s" % self.page)
         self.box.erase()
         self.box.border(0)
         self.box.addstr(0, 2, self.directory)
         for self.current_number_of_elements, element in enumerate(self.page):
             croped_element = element[: self.max_cols - 3]
-            # self.log("cropped element %s" % croped_element)
             if self.current_number_of_elements == self.position:
                 self.box.addstr(self.current_number_of_elements + 1, 2, croped_element, self.cursor_style)
             elif os.path.isdir(self.directory + self.systemPathSeparator + element):
@@ -104,13 +114,11 @@ class ListFilesBox:
             self.page = self.selected_files[start_element_index: start_element_index + self.max_row - 1]
 
     def key_down(self):
-        if self.position < self.current_number_of_elements:
+        if self.position + 1 < len(self.page):
             self.position = self.position + 1
-        elif self.position + 1 < len(self.selected_files):
+        elif self.position + 1 >= len(self.page) and self.page_number + 1 < self.pages:
             self.position = 0
             self.page_number = self.page_number + 1
-            start_element_index = self.page_number * self.max_row - 1
-            self.page = self.selected_files[start_element_index: start_element_index + self.max_row - 1]
 
     def resize(self, height, width):
         self.box.erase()
@@ -130,7 +138,6 @@ class ListFilesBox:
         self.box.refresh()
 
     def gethw(self):
-        self.log("y = %s x = %s" % self.box.getmaxyx())
         return self.box.getmaxyx()
 
     def log(self, msg):

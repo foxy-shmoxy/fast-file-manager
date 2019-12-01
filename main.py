@@ -75,7 +75,6 @@ while True:
         if size_of_one_window < minimal_panel_width:
             continue
         height, width = screen.getmaxyx()
-        log("width %s \n" % width)
         new_box = create_box(curses, 0, 0)
         new_file_box = ListFilesBox(new_box, cursor_style, directory_style, normalText, log_file=log_file)
         focused_element = new_file_box
@@ -86,15 +85,10 @@ while True:
         current_col_focused = current_col_focused + 1
 
         for i, file_list_window in enumerate(current_row):
-            log("=========== i %s" % i)
-            log("left_over %s" % windows_size_left_over)
-            log("last %s " % last_panel_position)
             temp_size = size_of_one_window
             if i < windows_size_left_over:
-                log("true")
                 temp_size = temp_size + 1
 
-            log("temp_size %s" % temp_size)
             file_list_window.resize(height, temp_size)
             file_list_window.move(0, last_panel_position)
             last_panel_position = last_panel_position + temp_size
