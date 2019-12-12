@@ -1,17 +1,21 @@
-import subprocess, os, platform
+import curses
+import datetime
+import os
+import platform
+import subprocess
 from math import *
 from pathlib import Path
-import datetime
+
 from filter import Filter
 
 
 class ListFilesBox:
 
     # TODO take care of duplicates
-    def __init__(self, box, fonts, directory=str(Path.home()),
+    def __init__(self, curses, height, width, x, y, fonts, directory=str(Path.home()),
                  log_file=open("logs.txt", "w")):
         self.log_file = log_file
-        self.box = box
+        self.box = ListFilesBox.create_box(curses, height, width, x, y)
         self.fonts = fonts
         self.directory = directory
         self.selected_files = self.all_files = []
@@ -29,6 +33,13 @@ class ListFilesBox:
         self.focused = True
 
         self.load_from_directory(self.directory)
+
+    @staticmethod
+    def create_box(curses, height, width, y, x):
+        box = curses.newwin(height, width, y, x)
+        box.keypad(1)
+        box.box()
+        return box
 
     def load_from_directory(self, directory):
         self.directory = str(directory)
@@ -150,6 +161,17 @@ class ListFilesBox:
     def log(self, msg):
         self.log_file.write("[%s]%s\n" % (datetime.datetime.now(), msg))
         self.log_file.flush()
+
+
+class Fonts:
+    def __init__(self, crs):
+        curses.init_pair(1, curses.COLOR_BLACK, curses.COLOR_CYAN)
+        curses.init_pair(2, curses.COLOR_YELLOW, curses.COLOR_BLACK)
+        curses.init_pair(3, curses.COLOR_RED, curses.COLOR_BLACK)
+
+        self.cursor_style = curses.color_pair(1)
+        self.directory_style = curses.color_pair(2)
+        self.normal_text = curses.A_NORMAL
 
 
 class State:

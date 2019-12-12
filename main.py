@@ -1,25 +1,7 @@
 # A lot of stuff to refactor. Just starting learning curses so.... a lot of mess
-import curses, os
+import curses
 import datetime
-from list_files_box import ListFilesBox
-
-
-class Fonts:
-    def __init__(self, crs):
-        curses.init_pair(1, curses.COLOR_BLACK, curses.COLOR_CYAN)
-        curses.init_pair(2, curses.COLOR_YELLOW, curses.COLOR_BLACK)
-        curses.init_pair(3, curses.COLOR_RED, curses.COLOR_BLACK)
-
-        self.cursor_style = curses.color_pair(1)
-        self.directory_style = curses.color_pair(2)
-        self.normal_text = curses.A_NORMAL
-
-
-def create_box(curses, y, x):
-    box = curses.newwin(height, width, y, x)
-    box.keypad(1)
-    box.box()
-    return box
+from list_files_box import ListFilesBox, Fonts
 
 
 def log(msg):
@@ -29,16 +11,15 @@ def log(msg):
 
 log_file = open("logs.txt", "w")
 screen = curses.initscr()
-minimal_panel_width = 15
+minimal_panel_width = 20
 curses.noecho()
 curses.cbreak()
 curses.start_color()
 screen.keypad(1)
 curses.curs_set(0)
 height, width = screen.getmaxyx()
-box = create_box(curses, 0, 0)
 fonts = Fonts(curses)
-focused_element = ListFilesBox(box, fonts, log_file=log_file)
+focused_element = ListFilesBox(curses, height, width, 0, 0, fonts, log_file=log_file)
 layout = [[focused_element]]
 current_col_focused = 0
 current_row = layout[current_col_focused]
@@ -56,14 +37,6 @@ while True:
         focused_element.handle_go_down()
     elif x == curses.KEY_UP or str(chr(x)) == "k":
         focused_element.handle_go_up()
-    # elif x == curses.KEY_LEFT: ## TODO add handling moving to next/prevoious page
-    #     if focused_element.page_number > 1:
-    #         focused_element.page_number = focused_element.page_number - 1
-    #         focused_element.position = 1 + (focused_element.max_rows_in_page * (focused_element.page_number - 1))
-    # elif x == curses.KEY_RIGHT:
-    #     if focused_element.page_number < focused_element.number_of_pages:
-    #         focused_element.page_number = focused_element.page_number + 1
-    #         focused_element.position = (1 + (focused_element.max_rows_in_page * (focused_element.page_number - 1)))
     elif x == 263:  # BACKSPACE -
         focused_element.go_to_parent()
     elif str(chr(x)) == "/":  # SLASH - search
@@ -89,12 +62,11 @@ while True:
                     file_list_window.focused = False
                 file_list_window.print()
     elif str(chr(x)) == "v":  # TODO calculate limit of vertical panels
-        size_of_one_window = int(width / len(current_row) + 1)
+        size_of_one_window = int(width / len(current_row))
         if size_of_one_window < minimal_panel_width:
             continue
         height, width = screen.getmaxyx()
-        new_box = create_box(curses, 0, 0)
-        new_file_box = ListFilesBox(new_box, fonts, log_file=log_file)
+        new_file_box = ListFilesBox(curses, height, width, 0, 0, fonts, log_file=log_file)
         focused_element = new_file_box
         current_row.append(new_file_box)
         size_of_one_window = int(width / len(current_row))
@@ -122,8 +94,7 @@ while True:
 
     elif (x == ord("\n") or x == 111) and focused_element.all_files_count != 0:
         focused_element.handle_open()
-    elif x == 410:
-        log("redraw all")
+    elif x == 410:  # window resizing
         screen.refresh()
         for i, file_list_window in enumerate(current_row):
             if i == current_col_focused:
